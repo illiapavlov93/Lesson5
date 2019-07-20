@@ -1,50 +1,53 @@
+from collections import OrderedDict
 import time
 
 
-def lru(f):
-    lru.fuse = 0
-    lru.cache = {}
-    lru.cachuse = 0
-    lru.time = 0
-    lru.cachesize = 128
+def lru_size(cachesize):
+    lru_size.fuse = 0
+    lru_size.cache = OrderedDict()
+    lru_size.cachuse = 0
+    lru_size.time = time.time()
+    lru_size.cachesize = cachesize
 
-    def wrapper(a):
-        if lru.time == 0:
-            lru.time = time.time()
-        if a in lru.cache.keys():
-            print('cache use', lru.cache[a])
-            lru.cachuse += 1
-        else:
-            r = f(a)
-            print('function use', r)
-            lru.cache[a] = r
-            lru.fuse += 1
-        if len(lru.cache) + 1 > lru.cachesize:
-            lru.cache.popitem()
+    def lru(f):
+        def wrapper(a):
+            if len(lru_size.cache) + 1 > cachesize:
+                print('deleting from cache :{}'.format(lru_size.cache.popitem(False)))
+            if a not in lru_size.cache:
+                lru_size.fuse += 1
+                r = f(a)
+                lru_size.cache[a] = r
+                print('Func use: {}, Cache: {}\n'.format(r, dict(lru_size.cache)))
+            else:
+                lru_size.cachuse += 1
+                print('Cache use: {}, Cache: {}\n'.format(lru_size.cache[a], dict(lru_size.cache)))
+            return lru_size.cache.get(a)
 
-    def cache_info():
-        print('Function use', lru.fuse)
-        print('Cache use', lru.cachuse)
-        print('Cache space', int(lru.cachesize - lru.cachuse))
-        if lru.time == 0:
-            print('Cache time 0')
-        else:
-            print('Cache time', lru.time - int(time.time()))
+        def cache_info():
+            print('Function use: {}'.format(lru_size.fuse))
+            print('Cache use: {}'.format(lru_size.cachuse))
+            print('Cache space: {}'.format(int(lru_size.cachesize - len(dict(lru_size.cache)))))
+            if lru_size.time == 0:
+                print('Cache time: 0\n')
+            else:
+                print('Cache time: {}\n'.format(lru_size.time - int(time.time())))
 
-    wrapper.cache_info = cache_info
+        wrapper.cache_info = cache_info
 
-    def cache_clear():
-        lru.cache.clear()
-        lru.fuse = 0
-        lru.cachuse = 0
-        lru.time = 0
-        print('Cache clear')
+        def cache_clear():
+            lru_size.cache.clear()
+            lru_size.fuse = 0
+            lru_size.cachuse = 0
+            lru_size.time = 0
+            print('Cache clear\n')
 
-    wrapper.cache_clear = cache_clear
-    return wrapper
+        wrapper.cache_clear = cache_clear
+
+        return wrapper
+    return lru
 
 
-@lru
+@lru_size(3)
 def double(a):
     return a + a
 
@@ -52,7 +55,12 @@ def double(a):
 double(10)
 double(10)
 double(20)
+double.cache_info()
 double(20)
+double(30)
+double(40)
 double.cache_info()
 double.cache_clear()
+double.cache_info()
+double(10)
 double.cache_info()
